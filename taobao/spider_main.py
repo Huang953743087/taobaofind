@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 
-
 import re
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -15,9 +14,13 @@ from config import *
 client = pymongo.MongoClient(MONGO_URL)
 db = client[MONGO_DB]
 
-browser = webdriver.Chrome()
+browser = webdriver.PhantomJS(service_args=SERVICE_ARGS)
 wait = WebDriverWait(browser, 10)
+browser.set_window_size(1400, 900)
+
+
 def search(key):
+    print('正在搜索')
     try:
         #获得网页
         browser.get('https://www.taobao.com')
@@ -35,6 +38,7 @@ def search(key):
 
 
 def next_page(page_number):
+    print('正在翻页，当前第', page_number)
     try:
         # 等待网页加载完成
         input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#mainsrp-pager > div > div > div > div.form > input")))
@@ -50,6 +54,7 @@ def next_page(page_number):
 
 
 def get_products():
+    print('正在解析')
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#mainsrp-itemlist .items .item")))
     html = browser.page_source
     doc = pq(html)
@@ -77,11 +82,13 @@ def save_to_mongo(result):
 
 
 def main():
-    total = search('美食')
-    total = int(re.compile('(\d+)').search(total).group(1))
-    for i in range(2, total+1):
-        next_page(i)
-    browser.close()
+    try:
+        total = search(KEY)
+        total = int(re.compile('(\d+)').search(total).group(1))
+        for i in range(2, total+1):
+            next_page(i)
+    except:
+        browser.close()
 
 
 
